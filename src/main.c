@@ -78,6 +78,8 @@ static char RCSID[]="$Id: main.c,v 1.15 2002/11/12 16:58:02 lucifer Exp $";
 #include <io.h>
 #endif
 
+#include <omp.h>
+
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <malloc.h>
@@ -133,7 +135,7 @@ void main( int argc, char **argv )
 int		crypt, plain, cryptlength, plainlength;
 struct stat	filestat;
 time_t		now;
-int		i, offset=12, caseflg=0, sabort=0, noprogress=0;
+int		nthreads, tid, i, offset=12, caseflg=0, sabort=0, noprogress=0;
 char		*cryptname=NULL, *plainname=NULL;
 char		*cFromZIP=NULL, *pFromZIP=NULL, *decryptName=NULL;
 
@@ -308,16 +310,32 @@ char		*cFromZIP=NULL, *pFromZIP=NULL, *decryptName=NULL;
     now = time(NULL);
     fprintf( stderr, "Stage 1 completed. Starting stage 2 on %s", ctime(&now) );
 
+
+
+#pragma omp parallel private(nthreads, tid)
+  {
+    tid = omp_get_thread_num();
     for( i = 0; i < numKey2s; i++ )
     {
         if(!noprogress)
         {
-            fprintf( stderr, "Searching... %3.1f%%\r",100.*i/numKey2s);
+            fprintf( stderr, "           Searching... %3.1f%%\r",100.*i/numKey2s);
+            fprintf( stderr, "Thread %d", tid);
 /*            fflush( stderr ); */
         }
         buildKey2Lists( key2i[i], cryptlength-bestOffset, offset );
         if( sabort && got_keys ) break;
     }
+
+    if (tid == 0) 
+    {
+       nthreads = omp_get_num_threads();
+       printf("Number of threads = %d\n", nthreads);
+    }
+  }
+
+
+
 
 
     now = time(NULL);

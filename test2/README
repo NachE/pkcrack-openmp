@@ -1,0 +1,6 @@
+#Usage:
+
+export OMP_NUM_THREADS=2
+../src/pkcrack -C ./test.png_c.zip -c "test.png" -P test.png.zip -p "test.png" -d output.zip
+
+#The password for zip are 1234

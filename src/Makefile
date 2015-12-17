@@ -18,7 +18,7 @@ OBJS =	crc.o mktmptbl.o main.o stage1.o keystuff.o stage2.o stage3.o exfunc.o\
 all: pkcrack$(SUFF) zipdecrypt$(SUFF) findkey$(SUFF) extract$(SUFF) makekey$(SUFF)
 
 pkcrack$(SUFF): $(OBJS)
-	$(CC) -o pkcrack $(CFLAGS) $(OBJS)
+	$(CC) -o pkcrack -fopenmp $(CFLAGS) $(OBJS)
 
 findkey$(SUFF): findkey.o crc.o stage3.o keystuff.o
 	$(CC) -o findkey $(CFLAGS) findkey.o crc.o stage3.o keystuff.o mktmptbl.o 
