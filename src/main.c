@@ -79,6 +79,7 @@ static char RCSID[]="$Id: main.c,v 1.15 2002/11/12 16:58:02 lucifer Exp $";
 #endif
 
 #include <omp.h>
+#include <stdbool.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -135,7 +136,8 @@ void main( int argc, char **argv )
 int		crypt, plain, cryptlength, plainlength;
 struct stat	filestat;
 time_t		now;
-int		nthreads, tid, i, offset=12, caseflg=0, sabort=0, noprogress=0;
+bool		breakloop = false;
+int		num_threads, this_thread, i, offset=12, caseflg=0, sabort=0, noprogress=0, testedkeys=0;
 char		*cryptname=NULL, *plainname=NULL;
 char		*cFromZIP=NULL, *pFromZIP=NULL, *decryptName=NULL;
 
@@ -310,34 +312,32 @@ char		*cFromZIP=NULL, *pFromZIP=NULL, *decryptName=NULL;
     now = time(NULL);
     fprintf( stderr, "Stage 1 completed. Starting stage 2 on %s", ctime(&now) );
 
-
-
-#pragma omp parallel private(nthreads, tid)
-  {
-    tid = omp_get_thread_num();
+/************************/
+    #pragma omp parallel for
     for( i = 0; i < numKey2s; i++ )
     {
-        if(!noprogress)
-        {
-            fprintf( stderr, "           Searching... %3.1f%%\r",100.*i/numKey2s);
-            fprintf( stderr, "Thread %d", tid);
-/*            fflush( stderr ); */
+        #pragma omp flush(breakloop)
+	if(!breakloop){
+
+          num_threads = omp_get_num_threads();
+          this_thread = omp_get_thread_num();
+          testedkeys++;
+
+          if(!noprogress)
+          {
+              fprintf( stderr, "%d/%d Testing key %d of %d, (Tested: %d) Searching... %3.1f%%        \r",this_thread,num_threads, i, numKey2s, testedkeys, 100.*testedkeys/numKey2s);
+          }
+
+          buildKey2Lists( key2i[i], cryptlength-bestOffset, offset );
+          if( sabort && got_keys ){
+            breakloop = true;
+            #pragma omp flush(breakloop)
+            /*break;*/
+	  }
         }
-        buildKey2Lists( key2i[i], cryptlength-bestOffset, offset );
-        if( sabort && got_keys ) break;
     }
 
-    if (tid == 0) 
-    {
-       nthreads = omp_get_num_threads();
-       printf("Number of threads = %d\n", nthreads);
-    }
-  }
-
-
-
-
-
+/**************************/
     now = time(NULL);
     fprintf( stderr, "Stage 2 completed. Starting %s on %s",
 		decryptName?"zipdecrypt":"password search", ctime(&now) );

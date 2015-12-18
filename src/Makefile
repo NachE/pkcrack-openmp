@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O6 -Wall
+CFLAGS=-Wall -fopenmp
 #CFLAGS=-g
 
 RM=rm -f
@@ -15,10 +15,13 @@ SRCS =	crc.c mktmptbl.c main.c stage1.c keystuff.c stage2.c stage3.c exfunc.c\
 OBJS =	crc.o mktmptbl.o main.o stage1.o keystuff.o stage2.o stage3.o exfunc.o\
 	readhead.o writehead.o zipdecrypt.o debug.o
 
-all: pkcrack$(SUFF) zipdecrypt$(SUFF) findkey$(SUFF) extract$(SUFF) makekey$(SUFF)
+all: pkcrack$(SUFF) zipdecrypt$(SUFF) findkey$(SUFF) extract$(SUFF) makekey$(SUFF) openmptest$(SUFF)
+
+openmptest$(SUFF): $(OBJS)
+	$(CC) -o openmptest $(CFLAGS) openmptest.c
 
 pkcrack$(SUFF): $(OBJS)
-	$(CC) -o pkcrack -fopenmp $(CFLAGS) $(OBJS)
+	$(CC) -o pkcrack $(CFLAGS) $(OBJS)
 
 findkey$(SUFF): findkey.o crc.o stage3.o keystuff.o
 	$(CC) -o findkey $(CFLAGS) findkey.o crc.o stage3.o keystuff.o mktmptbl.o 
@@ -41,6 +44,7 @@ clean:
 	$(RM) makekey
 	$(RM) *.exe
 	$(RM) core
+	$(RM) openmptest
 
 depend:
 	makedepend -f- $(SRCS) findkey.c zdmain.c makekey.c | sed 's= /[^ ]*\.h= =g' | grep -v '^.*: *$$' >> Makefile
